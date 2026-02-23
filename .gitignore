@@ -1,0 +1,23 @@
+# ── Only push the GUI web app ──
+
+# Exclude trading algorithms
+src/
+data/
+*.csv
+optimization_results.csv
+
+# Firebase credentials (NEVER push this)
+gui/firebase-key.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Temp
+gui/.tmp/
+
+# OS
+.DS_Store
+Thumbs.db

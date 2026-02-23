@@ -13,18 +13,18 @@ def run_user_code(code: str, timeout: int = 60) -> dict:
     """
     Writes user code to a temp file and executes it in a subprocess.
 
+    Uses the SYSTEM temp directory to avoid triggering Flask's
+    debug auto-reloader (which watches the gui/ directory).
+
     Returns:
         dict with keys: stdout, stderr, returncode
     """
-    # Write code to a temp file
-    tmp_dir = os.path.join(os.path.dirname(__file__), '.tmp')
-    os.makedirs(tmp_dir, exist_ok=True)
-
-    tmp_path = os.path.join(tmp_dir, 'user_script.py')
-    with open(tmp_path, 'w', encoding='utf-8') as f:
-        f.write(code)
-
+    # Write code to the SYSTEM temp dir (outside Flask's watch scope)
+    fd, tmp_path = tempfile.mkstemp(suffix='.py', prefix='strategy_')
     try:
+        with os.fdopen(fd, 'w', encoding='utf-8') as f:
+            f.write(code)
+
         result = subprocess.run(
             [sys.executable, tmp_path],
             capture_output=True,
@@ -50,7 +50,6 @@ def run_user_code(code: str, timeout: int = 60) -> dict:
             'returncode': -1,
         }
     finally:
-        # Clean up temp file
         try:
             os.remove(tmp_path)
         except OSError:
