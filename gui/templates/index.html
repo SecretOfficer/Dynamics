@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Strategy Lab</title>
+    <meta name="description"
+        content="Run, compare, and store crypto trading bot strategies with an IDE-like interface.">
+
+    <!-- CodeMirror 5 via CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.css">
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/theme/material-darker.min.css">
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/hint/show-hint.min.css">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
+        rel="stylesheet">
+
+    <style>
+        /* ── CSS Reset & Variables ─────────────────────────────────── */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #111827;
+            --bg-card: #1a1f2e;
+            --bg-card-hover: #222839;
+            --bg-elevated: #252b3b;
+            --border: #2a3146;
+            --border-glow: #3b82f6;
+
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --accent-glow: rgba(59, 130, 246, 0.25);
+            --green: #10b981;
+            --green-bg: rgba(16, 185, 129, 0.1);
+            --red: #ef4444;
+            --red-bg: rgba(239, 68, 68, 0.1);
+            --yellow: #f59e0b;
+            --yellow-bg: rgba(245, 158, 11, 0.1);
+            --purple: #8b5cf6;
+
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+            --radius: 12px;
+            --radius-sm: 8px;
+            --shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.5);
+            --transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ── Ambient Background ───────────────────────────────────── */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(ellipse at 20% 50%, rgba(59, 130, 246, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(139, 92, 246, 0.04) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 80%, rgba(16, 185, 129, 0.03) 0%, transparent 50%);
+            z-index: -1;
+            animation: ambientDrift 20s ease-in-out infinite alternate;
+        }
+
+        @keyframes ambientDrift {
+            0% {
+                transform: translate(0, 0) rotate(0deg);
+            }
+
+            100% {
+                transform: translate(-2%, 1%) rotate(1deg);
+            }
+        }
+
+        /* ── Header ───────────────────────────────────────────────── */
+        .header {
+            padding: 20px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(12px);
+            background: rgba(10, 14, 23, 0.8);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-brand .logo {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent), var(--purple));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .header-brand h1 {
+            font-size: 20px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--text-primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-brand .subtitle {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        /* ── Tab Navigation ───────────────────────────────────────── */
+        .tab-nav {
+            display: flex;
+            gap: 4px;
+            background: var(--bg-secondary);
+            border-radius: var(--radius);
+            padding: 4px;
+        }
+
+        .tab-btn {
+            padding: 10px 24px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-family: var(--font-sans);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: var(--radius-sm);
+            transition: all var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+            background: var(--bg-card);
+        }
+
+        .tab-btn.active {
+            background: var(--accent);
+            color: #fff;
+            box-shadow: 0 2px 12px var(--accent-glow);
+        }
+
+        .tab-btn .badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        /* ── Main Content ─────────────────────────────────────────── */
+        .main {
+            padding: 24px 32px;
+            max-width: 1440px;
+            margin: 0 auto;
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ── Editor Tab ───────────────────────────────────────────── */
+        .editor-layout {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 20px;
+            min-height: calc(100vh - 160px);
+        }
+
+        @media (max-width: 1024px) {
+            .editor-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        .card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-elevated);
+        }
+
+        .card-header h2 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-header h2 .icon {
+            font-size: 16px;
+        }
+
+        .card-body {
+            padding: 0;
+        }
+
+        .card-body.padded {
+            padding: 20px;
+        }
+
+        /* CodeMirror overrides */
+        .CodeMirror {
+            height: calc(100vh - 320px) !important;
+            min-height: 400px;
+            font-family: var(--font-mono) !important;
+            font-size: 14px !important;
+            line-height: 1.6 !important;
+            background: var(--bg-card) !important;
+            border: none !important;
+        }
+
+        .CodeMirror-gutters {
+            background: var(--bg-elevated) !important;
+            border-right: 1px solid var(--border) !important;
+        }
+
+        .CodeMirror-linenumber {
+            color: var(--text-muted) !important;
+        }
+
+        /* ── Run Button ───────────────────────────────────────────── */
+        .btn-run {
+            width: 100%;
+            padding: 14px 24px;
+            background: linear-gradient(135deg, var(--green), #059669);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-family: var(--font-sans);
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-run:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-run:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .btn-run:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-run .spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            display: none;
+        }
+
+        .btn-run.loading .spinner {
+            display: inline-block;
+        }
+
+        .btn-run.loading .btn-text {
+            display: none;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* ── Sidebar ──────────────────────────────────────────────── */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Format Reference */
+        .format-ref {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+        }
+
+        .format-ref h3 {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .format-ref pre {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 12px 14px;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            color: var(--green);
+            overflow-x: auto;
+            line-height: 1.5;
+        }
+
+        .format-ref .note {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 8px;
+            line-height: 1.5;
+        }
+
+        /* Output Panel */
+        .output-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            flex: 1;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .output-panel .card-header {
+            flex-shrink: 0;
+        }
+
+        .output-content {
+            padding: 16px;
+            overflow-y: auto;
+            flex: 1;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            line-height: 1.6;
+            color: var(--text-secondary);
+        }
+
+        .output-content.empty {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-family: var(--font-sans);
+            font-style: italic;
+        }
+
+        .output-content .error {
+            color: var(--red);
+        }
+
+        .output-content .success {
+            color: var(--green);
+        }
+
+        /* Metrics Cards */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .metric-card {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 12px 14px;
+            text-align: center;
+            transition: all var(--transition);
+        }
+
+        .metric-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 12px var(--accent-glow);
+        }
+
+        .metric-card .label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .metric-card .value {
+            font-size: 20px;
+            font-weight: 700;
+            font-family: var(--font-mono);
+        }
+
+        .metric-card .value.positive {
+            color: var(--green);
+        }
+
+        .metric-card .value.negative {
+            color: var(--red);
+        }
+
+        /* ── Comparison Table Tab ─────────────────────────────────── */
+        .table-controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .table-controls h2 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .table-controls .count {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .table-wrapper {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        .table-scroll {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        thead th {
+            background: var(--bg-elevated);
+            padding: 14px 16px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+            transition: color var(--transition);
+            position: relative;
+        }
+
+        thead th:hover {
+            color: var(--accent);
+        }
+
+        thead th .sort-arrow {
+            margin-left: 4px;
+            font-size: 10px;
+            opacity: 0.4;
+        }
+
+        thead th.sorted .sort-arrow {
+            opacity: 1;
+            color: var(--accent);
+        }
+
+        tbody td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+            transition: background var(--transition);
+        }
+
+        tbody tr:hover td {
+            background: var(--bg-card-hover);
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .td-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .td-value {
+            font-family: var(--font-mono);
+            font-size: 13px;
+        }
+
+        .td-positive {
+            color: var(--green);
+        }
+
+        .td-negative {
+            color: var(--red);
+        }
+
+        .td-neutral {
+            color: var(--text-secondary);
+        }
+
+        .td-date {
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .btn-delete {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+
+        .btn-delete:hover {
+            border-color: var(--red);
+            color: var(--red);
+            background: var(--red-bg);
+        }
+
+        /* Empty state */
+        .empty-state {
+            padding: 80px 20px;
+            text-align: center;
+        }
+
+        .empty-state .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-state h3 {
+            font-size: 18px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .empty-state p {
+            color: var(--text-muted);
+            font-size: 14px;
+            max-width: 400px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* ── Best-in-column highlight ─────────────────────────────── */
+        .best-cell {
+            position: relative;
+        }
+
+        .best-cell::before {
+            content: '★';
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            font-size: 9px;
+            color: var(--yellow);
+        }
+
+        /* ── Scrollbar styling ────────────────────────────────────── */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        /* ── Toast notification ────────────────────────────────────── */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 14px 24px;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-weight: 500;
+            color: #fff;
+            z-index: 1000;
+            transform: translateY(120%);
+            opacity: 0;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast.success {
+            background: var(--green);
+        }
+
+        .toast.error {
+            background: var(--red);
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header-brand">
+            <div class="logo">⚡</div>
+            <div>
+                <h1>Crypto Strategy Lab</h1>
+                <div class="subtitle">Run · Compare · Optimize</div>
+            </div>
+        </div>
+        <nav class="tab-nav">
+            <button class="tab-btn active" data-tab="editor" id="tab-editor">
+                <span>⌨️</span> Code Editor
+            </button>
+            <button class="tab-btn" data-tab="compare" id="tab-compare">
+                <span>📊</span> All Methods <span class="badge" id="method-count">0</span>
+            </button>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+
+        <!-- ──── Tab 1: Code Editor ──── -->
+        <div class="tab-content active" id="panel-editor">
+            <div class="editor-layout">
+                <!-- Left: Editor -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2><span class="icon">📝</span> Python Strategy Script</h2>
+                        <span style="font-size:12px; color:var(--text-muted);">Python 3</span>
+                    </div>
+                    <div class="card-body">
+                        <textarea id="code-editor"></textarea>
+                    </div>
+                </div>
+
+                <!-- Right: Sidebar -->
+                <div class="sidebar">
+                    <!-- Format Reference -->
+                    <div class="format-ref">
+                        <h3>📋 Required Output Format</h3>
+                        <pre>{
+  "method_name": "My Strategy",
+  "accuracy": 62.5,
+  "one_year_gain": 87.3
+}</pre>
+                        <div class="note">
+                            Print this JSON as the <strong>last line</strong> of stdout.<br>
+                            Optional fields: <code>total_return</code>, <code>max_drawdown</code>,
+                            <code>sharpe_ratio</code>, <code>sortino_ratio</code>, <code>total_trades</code>
+                        </div>
+                    </div>
+
+                    <!-- Run Button -->
+                    <button class="btn-run" id="btn-run" onclick="runCode()">
+                        <span class="spinner"></span>
+                        <span class="btn-text">▶ Run Strategy</span>
+                    </button>
+
+                    <!-- Output / Results -->
+                    <div class="output-panel">
+                        <div class="card-header">
+                            <h2><span class="icon">📟</span> Output</h2>
+                        </div>
+                        <div class="output-content empty" id="output-content">
+                            Run your script to see output here
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ──── Tab 2: Comparison ──── -->
+        <div class="tab-content" id="panel-compare">
+            <div class="table-controls">
+                <div>
+                    <h2>📊 Strategy Comparison</h2>
+                    <span class="count" id="table-count"></span>
+                </div>
+            </div>
+            <div class="table-wrapper" id="table-wrapper">
+                <!-- filled by JS -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <!-- CodeMirror JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/edit/matchbrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/edit/closebrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/selection/active-line.min.js"></script>
+
+    <script>
+        // ═══════════════════════════════════════════════════════════
+        //  INIT
+        // ═══════════════════════════════════════════════════════════
+
+        const TEMPLATE = `import json
+
+# ============================================================
+#  CRYPTO STRATEGY LAB — Script Template
+# ============================================================
+# Write your backtesting / strategy logic here.
+# At the end, print a JSON object as the LAST line of stdout.
+#
+# REQUIRED fields:
+#   method_name   (str)   — Name of your strategy
+#   accuracy      (float) — Win rate percentage (0–100)
+#   one_year_gain (float) — Annualized return percentage
+#
+# OPTIONAL fields:
+#   total_return, max_drawdown, sharpe_ratio,
+#   sortino_ratio, total_trades
+# ============================================================
+
+# --- Example: dummy strategy results ---
+method_name   = "MACD + RSI Crossover v1"
+accuracy      = 62.5          # Win rate %
+one_year_gain = 87.3          # Annualized return %
+
+# You can compute these from your backtester:
+total_return  = 320.5         # Total return %
+max_drawdown  = -18.2         # Max drawdown %
+sharpe_ratio  = 1.85
+sortino_ratio = 2.41
+total_trades  = 47
+
+result = {
+    "method_name":   method_name,
+    "accuracy":      accuracy,
+    "one_year_gain": one_year_gain,
+    "total_return":  total_return,
+    "max_drawdown":  max_drawdown,
+    "sharpe_ratio":  sharpe_ratio,
+    "sortino_ratio": sortino_ratio,
+    "total_trades":  total_trades,
+}
+
+# ▼▼▼ IMPORTANT: This must be the LAST print statement ▼▼▼
+print(json.dumps(result))
+`;
+
+        // Initialize CodeMirror
+        const editor = CodeMirror.fromTextArea(document.getElementById('code-editor'), {
+            mode: 'python',
+            theme: 'material-darker',
+            lineNumbers: true,
+            matchBrackets: true,
+            autoCloseBrackets: true,
+            styleActiveLine: true,
+            indentUnit: 4,
+            tabSize: 4,
+            lineWrapping: false,
+        });
+        editor.setValue(TEMPLATE);
+
+        // Load methods on page load
+        loadMethods();
+
+        // ═══════════════════════════════════════════════════════════
+        //  TABS
+        // ═══════════════════════════════════════════════════════════
+
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(p => p.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+
+                if (btn.dataset.tab === 'compare') loadMethods();
+            });
+        });
+
+        // ═══════════════════════════════════════════════════════════
+        //  RUN CODE
+        // ═══════════════════════════════════════════════════════════
+
+        async function runCode() {
+            const btn = document.getElementById('btn-run');
+            const output = document.getElementById('output-content');
+
+            btn.classList.add('loading');
+            btn.disabled = true;
+            output.classList.remove('empty');
+            output.innerHTML = '<span style="color:var(--text-muted);">⏳ Running script...</span>';
+
+            try {
+                const res = await fetch('/run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: editor.getValue() }),
+                });
+                const data = await res.json();
+
+                let html = '';
+
+                // Show stdout (excluding the JSON line)
+                if (data.stdout) {
+                    const lines = data.stdout.trim().split('\n');
+                    const displayLines = lines.slice(0, -1); // everything except JSON line
+                    if (displayLines.length > 0) {
+                        html += '<div style="margin-bottom:12px;color:var(--text-secondary);">';
+                        html += displayLines.map(l => escapeHtml(l)).join('<br>');
+                        html += '</div>';
+                    }
+                }
+
+                // Show errors
+                if (data.stderr) {
+                    html += `<div class="error" style="margin-bottom:12px;">⚠️ ${escapeHtml(data.stderr)}</div>`;
+                }
+                if (data.error) {
+                    html += `<div class="error" style="margin-bottom:12px;">❌ ${escapeHtml(data.error)}</div>`;
+                }
+
+                // Show parsed metrics
+                if (data.metrics) {
+                    html += renderMetrics(data.metrics);
+                    showToast('✅ Strategy saved successfully!', 'success');
+                    updateMethodCount();
+                }
+
+                output.innerHTML = html || '<span class="success">✅ Script ran with no output.</span>';
+
+            } catch (err) {
+                output.innerHTML = `<div class="error">❌ Network error: ${escapeHtml(err.message)}</div>`;
+                showToast('Connection error', 'error');
+            } finally {
+                btn.classList.remove('loading');
+                btn.disabled = false;
+            }
+        }
+
+        function renderMetrics(m) {
+            const gain = parseFloat(m.one_year_gain);
+            const acc = parseFloat(m.accuracy);
+
+            let html = `<div style="margin-bottom:8px;font-family:var(--font-sans);font-weight:600;color:var(--accent);">
+                ✅ ${escapeHtml(m.method_name)} — Saved!</div>`;
+            html += '<div class="metrics-grid">';
+            html += metricCard('Accuracy', acc.toFixed(1) + '%', acc >= 50);
+            html += metricCard('1-Year Gain', gain.toFixed(1) + '%', gain >= 0);
+            if (m.total_return != null) html += metricCard('Total Return', parseFloat(m.total_return).toFixed(1) + '%', m.total_return >= 0);
+            if (m.max_drawdown != null) html += metricCard('Max Drawdown', parseFloat(m.max_drawdown).toFixed(1) + '%', m.max_drawdown >= 0);
+            if (m.sharpe_ratio != null) html += metricCard('Sharpe', parseFloat(m.sharpe_ratio).toFixed(2), m.sharpe_ratio >= 1);
+            if (m.sortino_ratio != null) html += metricCard('Sortino', parseFloat(m.sortino_ratio).toFixed(2), m.sortino_ratio >= 1);
+            if (m.total_trades != null) html += metricCard('Trades', m.total_trades, true);
+            html += '</div>';
+            return html;
+        }
+
+        function metricCard(label, value, isPositive) {
+            return `<div class="metric-card">
+                <div class="label">${label}</div>
+                <div class="value ${isPositive ? 'positive' : 'negative'}">${value}</div>
+            </div>`;
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        //  LOAD & RENDER METHODS
+        // ═══════════════════════════════════════════════════════════
+
+        let allMethods = [];
+        let sortCol = 'created_at';
+        let sortAsc = false;
+
+        async function loadMethods() {
+            try {
+                const res = await fetch('/methods');
+                allMethods = await res.json();
+                document.getElementById('method-count').textContent = allMethods.length;
+                renderTable();
+            } catch (e) {
+                console.error('Failed to load methods', e);
+            }
+        }
+
+        async function updateMethodCount() {
+            try {
+                const res = await fetch('/methods');
+                const data = await res.json();
+                document.getElementById('method-count').textContent = data.length;
+            } catch (e) { }
+        }
+
+        function renderTable() {
+            const wrapper = document.getElementById('table-wrapper');
+            const countEl = document.getElementById('table-count');
+
+            if (allMethods.length === 0) {
+                wrapper.innerHTML = `<div class="empty-state">
+                    <div class="icon">🧪</div>
+                    <h3>No strategies tested yet</h3>
+                    <p>Go to the Code Editor tab, paste your strategy, and hit Run. Results will appear here for comparison.</p>
+                </div>`;
+                countEl.textContent = '';
+                return;
+            }
+
+            countEl.textContent = `${allMethods.length} method${allMethods.length !== 1 ? 's' : ''} saved`;
+
+            // Sort
+            const sorted = [...allMethods].sort((a, b) => {
+                let va = a[sortCol], vb = b[sortCol];
+                if (va == null) va = -Infinity;
+                if (vb == null) vb = -Infinity;
+                if (typeof va === 'string') return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+                return sortAsc ? va - vb : vb - va;
+            });
+
+            // Find best values for highlighting
+            const best = {};
+            const numCols = ['accuracy', 'one_year_gain', 'total_return', 'sharpe_ratio', 'sortino_ratio'];
+            numCols.forEach(col => {
+                const vals = allMethods.map(m => m[col]).filter(v => v != null);
+                if (vals.length > 0) best[col] = Math.max(...vals);
+            });
+            // For max_drawdown, best is closest to 0
+            const ddVals = allMethods.map(m => m.max_drawdown).filter(v => v != null);
+            if (ddVals.length > 0) best.max_drawdown = Math.max(...ddVals);
+
+            const cols = [
+                { key: 'method_name', label: 'Strategy Name' },
+                { key: 'accuracy', label: 'Accuracy %' },
+                { key: 'one_year_gain', label: '1-Year Gain %' },
+                { key: 'total_return', label: 'Total Return %' },
+                { key: 'max_drawdown', label: 'Max Drawdown %' },
+                { key: 'sharpe_ratio', label: 'Sharpe' },
+                { key: 'sortino_ratio', label: 'Sortino' },
+                { key: 'total_trades', label: 'Trades' },
+                { key: 'created_at', label: 'Date' },
+            ];
+
+            let html = '<div class="table-scroll"><table><thead><tr>';
+            cols.forEach(c => {
+                const isSorted = sortCol === c.key;
+                const arrow = isSorted ? (sortAsc ? '▲' : '▼') : '⇅';
+                html += `<th class="${isSorted ? 'sorted' : ''}" onclick="sortTable('${c.key}')">
+                    ${c.label} <span class="sort-arrow">${arrow}</span></th>`;
+            });
+            html += '<th></th></tr></thead><tbody>';
+
+            sorted.forEach(m => {
+                html += '<tr>';
+                cols.forEach(c => {
+                    const val = m[c.key];
+                    if (c.key === 'method_name') {
+                        html += `<td class="td-name" title="${escapeHtml(val)}">${escapeHtml(val)}</td>`;
+                    } else if (c.key === 'created_at') {
+                        const d = new Date(val);
+                        html += `<td class="td-date">${d.toLocaleDateString()} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>`;
+                    } else if (val == null) {
+                        html += '<td class="td-value td-neutral">—</td>';
+                    } else {
+                        const num = parseFloat(val);
+                        const isPos = c.key === 'max_drawdown' ? num >= 0 : num >= 0;
+                        const isBest = best[c.key] !== undefined && num === best[c.key];
+                        const cls = `td-value ${isPos ? 'td-positive' : 'td-negative'} ${isBest ? 'best-cell' : ''}`;
+                        const display = Number.isInteger(num) ? num : num.toFixed(2);
+                        html += `<td class="${cls}">${display}</td>`;
+                    }
+                });
+                html += `<td><button class="btn-delete" onclick="deleteMethod('${m.id}')">✕ Delete</button></td>`;
+                html += '</tr>';
+            });
+
+            html += '</tbody></table></div>';
+            wrapper.innerHTML = html;
+        }
+
+        function sortTable(col) {
+            if (sortCol === col) {
+                sortAsc = !sortAsc;
+            } else {
+                sortCol = col;
+                sortAsc = false;
+            }
+            renderTable();
+        }
+
+        async function deleteMethod(id) {
+            if (!confirm('Delete this strategy record?')) return;
+            try {
+                await fetch(`/methods/${id}`, { method: 'DELETE' });
+                showToast('Strategy deleted', 'success');
+                loadMethods();
+            } catch (e) {
+                showToast('Failed to delete', 'error');
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        //  UTILS
+        // ═══════════════════════════════════════════════════════════
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function showToast(msg, type) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.className = `toast ${type} show`;
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+    </script>
+</body>
+
+</html>
